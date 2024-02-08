@@ -1,0 +1,135 @@
+---
+title: "Homework 3- Statistical Thinking"
+author: "Arjun Kumar, UT eid: aak3692"
+date: "2024-02-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(tibble)
+library(rvest)
+library(dplyr)
+library(readr)
+library(stringr)
+library(stringi)
+```
+
+## **Problem 1** ##
+```{r echo = FALSE}
+creatinine <- read.csv("creatinine.csv")
+
+linear_creatinine <- lm(creatclear ~ age, data = creatinine)
+creatinine_plot = ggplot(creatinine, aes(x = age, y = creatclear)) + geom_point(color = "blue", size = 1) +
+geom_smooth(method = "lm", se = FALSE, color = "red") + labs(x = "Age", y = "Creatinine Clearance Rate", title = "Creatinine Regression Model") + theme_classic()
+creatinine_plot
+```
+
+**Part A**
+```{r echo = FALSE}
+expected_55 <- predict(linear_creatinine, newdata = data.frame(age = 55))
+```
+
+I have provided a linear regression model at the top for a visual representation. The predicted creatinine clearance rate for a 55 year old is approximately `r expected_55` ml/minute per year. The linear equation for this relationship is:  β₀ + β₁ × age + ε is the creatinine clearance. In order to determine the expected creatinine clearance rate (𝑦̂) for an individual 55 years of age, we enter age = 55 into the formula:𝑦̂ = 𝛽̂₀ + 𝛽̂₁ × 55.
+
+**Part B**
+```{r echo = FALSE}
+age_rate <- coef(linear_creatinine)["age"]
+```
+
+The rate at which creatinine clearance rate changes with age is `r round(age_rate, 2)`ml/minute per year. I determined this by simply using the coefficient function on the linear model i created earlier for the creatinine dataset. The linear regression model yields the age coefficient (β1), which indicates the annual change in creatinine clearance rate as a function of age in milliliters per minute.
+
+**Part C**
+```{r echo = FALSE}
+intercept <- coef(linear_creatinine)["(Intercept)"]
+clearance_rate_40 <- intercept + age_rate * 40
+clearance_rate_60 <- intercept + age_rate * 60
+clearance_rate_40
+clearance_rate_60
+```
+
+If we are given a 40 year old, the creatinine clearance rate would be approximately `r round(clearance_rate_40, 2)`. If we are given a 60 year old, the creatinine clearance rate would be approximately `r round(clearance_rate_60, 2)`. In order to determine this, I simply multiplied the coefficient of the slope on the linear model regarding age, and multiplied it by 40 while adding the intercept as well. This can be represented by the initial equation: clearance_rate = β0 + β1 * 40 for the 40 year old, and clearance_rate = β0 + β1 * 60 for the 60 year old. After using these equations, I came to the conclusion that the 40 year old had a healthier clearance rate as 135 is `r round(135 - clearance_rate_40,2)` above the clearance rate for a 40 year old man compared to 112 being only `r round(112 - clearance_rate_60,2)` above the creatinine clearance rate for a 60 year old man.
+
+## **Problem 2** ##
+```{r echo = FALSE}
+market = read.csv("marketmodel.csv")
+```
+**Part A**
+
+The beta indicator is a crucial financial metric that evaluates a stock's sensitivity to fluctuations in the market. The calculation of beta, which compares a company's historical returns to those of a market index like the S&P 500, is done using regression analysis. A stock is said to move  with the market when its beta value is 1, whereas values below or above 1 suggest varying degrees of market volatility. Investors interpret beta based on their level of risk tolerance; low-beta firms are preferred by cautious investors, while high-beta equities are sought after by those looking to potentially outperform their current level of volatility.It can be a very useful tool for investors to determine potential risks and rewards when investing in a stock. If a beta is rather low, there may be more stability, but not as much reward potential compared to a high beta which moves more with the market.
+
+**Part B**
+```{r echo = FALSE}
+results <- data.frame(Ticker = character(), Intercept = numeric(), Beta = numeric(), R_squared = numeric(), stringsAsFactors = FALSE)
+
+stock_list <- c("AAPL", "GOOG", "MRK", "JNJ", "WMT", "TGT")
+
+
+for (stock in stock_list) {
+  model <- lm(market[[stock]] ~ market$SPY)
+  coef_data <- summary(model)$coefficients
+  intercept <- coef_data[1, 1]
+  beta_indic <- coef_data[2, 1]
+  rsquared <- summary(model)$r.squared
+  results <- rbind(results, data.frame(Ticker = stock, Intercept = intercept, Beta = beta_indic, R_squared = rsquared))
+}
+kable(results, format = "markdown", 
+      caption = "Linear Regression Model for Individual Stocks on S&P 500",
+      align = c("l", "c", "c", "c"),
+      digits = c(0, 2, 2, 2),
+      col.names = c("Ticker", "Intercept", "Beta", "R squared"))
+```
+
+In this table, the regression findings for each stock are demonstrated, along with the R squared value, Beta coefficient, and Intercept value. The intercept demonstrates the stock's expected return when the market return is zero, the beta coefficient demonstrates how each stock responds to changes in the markets as well as overall dependence on major market trends such as rising and falling. The R-squared number expresses the percentage of the stock return variance that can be accounted for by variations in the market return.
+
+**Part C**
+
+The stock with the lowest systematic risk is Wal-Mart (WMT) as it has the lowest beta coefficient of approximately 0.52. As a result, it is not impacted by market trends as much, so when the market goes down as a whole, it will not see as much losses. However, once the market goes, up, Wal-Mart will not see as much of a jump compared to stocks that have a beta coefficient above 1. The stock with the highest systematic risk is Apple (AAPL) with the highest beta coefficient of 1.07. This is above the bookmark beta coefficient of 1.0, meaning that Apple is more dependent on how well the market is doing, giving it a high-risk, high-reward dynamic.
+
+## **Problem 3** ##
+```{r echo = FALSE}
+covid = read.csv("covid.csv")
+```
+
+**Part A**
+```{r echo = FALSE}
+linear_italy <- lm(log(deaths) ~ days_since_first_death, data = covid %>% filter(country == "Italy"))
+linear_spain <- lm(log(deaths) ~ days_since_first_death, data = covid %>% filter(country == "Spain"))
+italy_growth <- coef(linear_italy)[2]
+spain_growth <- coef(linear_spain)[2]
+italy_doubling_time <- 70 / italy_growth
+spain_doubling_time <- 70 / spain_growth
+italy_doubling_time <- round(italy_doubling_time)
+spain_doubling_time <- round(spain_doubling_time)
+```
+
+The expected growth rate for Italy is `r round(italy_growth, 3)` and the expected doubling time is `r italy_doubling_time` regarding deaths per day as a result of Covid.
+
+**Part B**
+
+The expected growth rate for Spain is `r round(spain_growth, 3)` and the expected doubling time is `r spain_doubling_time` regarding deaths per day as a result of Covid.
+
+**Part C**
+
+```{r echo = FALSE}
+ggplot(covid, aes(x = days_since_first_death, y = deaths, color = country)) + geom_line() + labs(title = "Daily Deaths by Time (Reported)", x = "Days Since First Death", y = "Daily Deaths (Reported)", color = "Country") + theme_classic()
+```
+
+Initially, Spain saw a higher exponential growth trend regarding reported daily deaths by days since first death in comparsion to Italy. However, after approximately day 27, Spain's daily deaths had stopped while Italy's kept rising to be higher overall by around day 37. In conclusion, although the number of fatalities per day increased exponentially in both Italy and Spain at first, Spain's growth rate was faster and its doubling time was shorter than Italy's. But after a while, Spain's daily death toll stopped climbing, while Italy's kept rising and finally overtook Spain's.
+
+## **Question 4** ##
+```{r echo = FALSE}
+milk = read.csv("milk.csv")
+linear_milk <- lm(log(sales) ~ log(price), data=milk)
+milk_elasticity <- coef(linear_milk)["log(price)"]
+
+
+milk_model <- ggplot(milk, aes(x=log(price), y=log(sales))) + geom_point() +geom_smooth(method="lm", se=FALSE, color="blue") +
+labs(x="ln of Price", y="ln of Quantity Demanded", title="Milk Demand Linear Model") + theme_classic()
+milk_model
+```
+
+Given the formula Q = KP^β, we can get the elasticity coefficient (β) by applying the formula β is equal to D(ln(Q))/d(ln(P)), where the corresponding changes are represented by the natural logarithms of the quantity desired (d(ln(Q)) and price (d(ln(P)). We may estimate the price elasticity of demand by fitting a power-law model to the data and calculating the elasticity coefficient (β) from the model parameters. Using this formula, I determined the elasticity of demand for the milk is approximately `r round(milk_elasticity, 2)`.
