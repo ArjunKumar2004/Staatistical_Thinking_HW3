@@ -5,6 +5,10 @@ date: "2024-02-05"
 output: html_document
 ---
 
+## **Github Link** ##
+
+https://github.com/ArjunKumar2004/Staatistical_Thinking_HW3
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(knitr)
